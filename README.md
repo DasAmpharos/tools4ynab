@@ -8,7 +8,8 @@ command, `tools4ynab`, and sharing one API client and email setup. So far:
 - **`tools4ynab reports`** is read-only: a monthly report on spending trends and recurring
   charges (see [Reports](#reports)).
 - **`tools4ynab budget`** copies this month's assigned amounts into next month as a
-  starting point (see [Budget](#budget)).
+  starting point, and snapshots a month's budget to compare with at month end (see
+  [Budget](#budget)).
 
 This repo is only the code. Each person keeps their own budget details (`rules.yaml`,
 `reports.yaml`, `.env`) in a separate, private config repo or folder and installs
@@ -305,6 +306,38 @@ uv run tools4ynab budget --overwrite --apply  # also replace amounts already set
 Each category is one API call, and YNAB allows 200 an hour. If a run stops partway, the
 error says how far it got. Run it again to finish, because categories already copied are
 skipped.
+
+### Snapshots: compare the plan with the month end
+
+YNAB only keeps a category's *current* assigned amount, so once you move money around
+mid-month the original plan is gone. `budget snapshot` saves it when you've finished
+budgeting, and `budget compare` shows what happened since:
+
+```bash
+uv run tools4ynab budget snapshot                  # lock in this month's budget
+uv run tools4ynab budget snapshot --month 2026-11  # ...or another month (e.g. the day before)
+uv run tools4ynab budget compare                   # this month vs its snapshot
+uv run tools4ynab budget compare --month 2026-11   # any month with a snapshot
+```
+
+`compare` shows:
+
+- **Assigned** at the snapshot and now, split into money **moved between categories**
+  and **new money assigned** (e.g. income that arrived after you budgeted) or money taken
+  **back to Ready to Assign**.
+- **Changed after the snapshot:** each category you topped up or cut, with what it spent.
+- **Spent more than the snapshot planned:** categories that overspent the original plan,
+  even if you covered them by moving money in.
+
+Both commands only read from YNAB. Snapshots are small JSON files in `snapshots/`
+(`--dir` to change), one per month, holding each category's assigned, activity and
+available amounts. Commit them to your private config repo to keep the history. A month's
+snapshot is never replaced unless you pass `--force`.
+
+Run `compare` on the last day of the month or any time after: YNAB's numbers for a past
+month stay put, so the comparison is the same whenever you run it. Only the net change is
+visible: moving money from A to B and back looks like no change. Credit card payment
+categories show their assigned changes but aren't counted as spending.
 
 ## Logging and privacy
 

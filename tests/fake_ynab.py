@@ -60,6 +60,8 @@ class FakeYnab:
         }
         self.txns: dict[str, dict[str, Any]] = {}
         self.assigned: dict[tuple[str, str], int] = {}  # (YYYY-MM-01, category id) -> milliunits
+        self.activity: dict[tuple[str, str], int] = {}  # same keys; negative is spending
+        self.to_be_budgeted: dict[str, int] = {}  # YYYY-MM-01 -> milliunits
 
     @staticmethod
     def _cat(name: str) -> dict[str, Any]:
@@ -136,10 +138,9 @@ class FakeYnab:
                 {
                     "month": {
                         "month": m.group(1),
-                        "categories": [
-                            {**c, "budgeted": self.assigned.get((m.group(1), c["id"]), 0)}
-                            for c in cats
-                        ],
+                        "income": 0,
+                        "to_be_budgeted": self.to_be_budgeted.get(m.group(1), 0),
+                        "categories": [self._month_category(m.group(1), c) for c in cats],
                     }
                 }
             )
@@ -165,6 +166,12 @@ class FakeYnab:
                 self._update(self.txns[patch["id"]], patch)
             return self._ok({"transactions": []})
         raise AssertionError(f"unhandled fake request: {method} {path}")
+
+    def _month_category(self, month: str, cat: dict[str, Any]) -> dict[str, Any]:
+        budgeted = self.assigned.get((month, cat["id"]), 0)
+        activity = self.activity.get((month, cat["id"]), 0)
+        # No carryover from earlier months: enough for what the tools read.
+        return {**cat, "budgeted": budgeted, "activity": activity, "balance": budgeted + activity}
 
     @staticmethod
     def _ok(data: dict[str, Any]) -> FakeResponse:

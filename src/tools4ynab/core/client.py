@@ -57,10 +57,16 @@ class YnabClient:
         data = self._request("GET", f"/budgets/{self.budget_id}/accounts")
         return {a["id"]: a for a in data["accounts"] if not a["deleted"]}
 
+    def month(self, month: date) -> dict[str, Any]:
+        """The budget month containing `month`: month totals (`income`, `to_be_budgeted`, ...)
+        and per-category `budgeted` (assigned), `activity` and `balance` (available)."""
+        data = self._request("GET", f"/budgets/{self.budget_id}/months/{month:%Y-%m-01}")
+        return data["month"]
+
     def assigned(self, month: date) -> dict[str, int]:
         """Assigned ("budgeted") milliunits per category id for the month containing `month`."""
-        data = self._request("GET", f"/budgets/{self.budget_id}/months/{month:%Y-%m-01}")
-        return {c["id"]: c["budgeted"] for c in data["month"]["categories"] if not c["deleted"]}
+        cats = self.month(month)["categories"]
+        return {c["id"]: c["budgeted"] for c in cats if not c["deleted"]}
 
     def set_assigned(self, month: date, category_id: str, milliunits: int) -> None:
         self._request(
