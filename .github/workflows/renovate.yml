@@ -1,0 +1,36 @@
+---
+# Self-hosted Renovate: keeps uv.lock and the workflow pins current. Each update opens a pull request,
+# which Renovate squash-merges itself once CI passes (see renovate.json5).
+# Needs the repository secret RENOVATE_TOKEN: a fine-grained personal access token with access to this
+# repository, with Contents, Pull requests, Issues, Commit statuses and Workflows set to read and write
+# (README, "Dependency updates").
+name: Renovate
+
+on:
+  schedule:
+    - cron: "27 10 * * *" # daily, 5:27 or 6:27 AM Eastern
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: renovate
+  cancel-in-progress: false
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Renovate
+        uses: renovatebot/github-action@1c0cf989c02653fba0efe7ca5772338860ca71dc # v46.3.12
+        with:
+          token: ${{ secrets.RENOVATE_TOKEN }}
+          renovate-version: 44.216.2
+        env:
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # The repository config already exists, so no onboarding PR; and never run without it.
+          RENOVATE_ONBOARDING: "false"
+          RENOVATE_REQUIRE_CONFIG: required
+          LOG_LEVEL: info
