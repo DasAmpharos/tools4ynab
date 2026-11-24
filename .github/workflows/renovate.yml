@@ -8,7 +8,9 @@ name: Renovate
 
 on:
   schedule:
-    - cron: "27 10 * * *" # daily, 5:27 or 6:27 AM Eastern
+    # Before 5 AM Eastern, with room for GitHub delaying scheduled runs: the "* 0-5 ..." schedules in
+    # renovate.json5 (and "before 6am") only match runs before 6 AM.
+    - cron: "27 7 * * *" # daily, 2:27 or 3:27 AM Eastern
   workflow_dispatch: {}
 
 permissions:
