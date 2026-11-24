@@ -1,0 +1,56 @@
+// Renovate keeps uv.lock and the GitHub Actions pins current. It runs self-hosted from
+// .github/workflows/renovate.yml (daily, with the RENOVATE_TOKEN secret).
+//
+// Each update opens a pull request, since the "Protect main" ruleset only takes squash-merged pull
+// requests. CI runs on it, and on a later run, once CI has passed, Renovate squash-merges it itself. It
+// merges with your token, so it relies on your admin bypass of the ruleset's required approval, the
+// same way you merge your own pull requests. GitHub's own auto-merge is off (platformAutomerge) because
+// it would wait for that approval forever. Nothing is released: tags are still cut by hand (README,
+// "Releasing").
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: ['config:recommended'],
+  timezone: 'America/New_York',
+
+  // pyproject.toml + uv.lock (and the build backend), workflow actions, and the Renovate version the
+  // workflow runs.
+  enabledManagers: ['pep621', 'github-actions', 'custom.regex'],
+
+  // Let a release age a week first, so early regressions surface before it lands here.
+  minimumReleaseAge: '7 days',
+  internalChecksFilter: 'strict',
+
+  automerge: true,
+  automergeType: 'pr',
+  automergeStrategy: 'squash',
+  platformAutomerge: false,
+
+  // Weekly refresh of uv.lock's transitive dependencies, merged the same way.
+  lockFileMaintenance: {
+    enabled: true,
+    automerge: true,
+    schedule: ['* 0-5 * * 1'],
+  },
+
+  labels: ['dependencies'],
+
+  customManagers: [
+    {
+      customType: 'regex',
+      description: 'The Renovate version the workflow runs',
+      managerFilePatterns: ['/^\\.github/workflows/renovate\\.yml$/'],
+      matchStrings: ['renovate-version: (?<currentValue>\\d+\\.\\d+\\.\\d+)'],
+      depNameTemplate: 'ghcr.io/renovatebot/renovate',
+      datasourceTemplate: 'docker',
+    },
+  ],
+
+  packageRules: [
+    {
+      description: 'Renovate itself releases daily: one combined update a month for it and its GitHub Action is plenty',
+      matchPackageNames: ['ghcr.io/renovatebot/renovate', 'renovatebot/github-action'],
+      groupName: 'Renovate',
+      schedule: ['* 0-5 1 * *'],
+    },
+  ],
+}

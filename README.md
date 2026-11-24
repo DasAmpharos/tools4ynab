@@ -379,6 +379,24 @@ failure handling) against an in-memory fake of the YNAB API, including both ways
 might handle a transfer. Real YNAB behavior for splits and transfer merges has not
 yet been confirmed against a live write; see `YNAB_DISABLED_RULES` above.
 
+## Dependency updates
+
+Renovate keeps `uv.lock` and the GitHub Actions pins current: it runs daily from
+`.github/workflows/renovate.yml` and opens a pull request for each update once the release is a week old.
+When CI passes, it squash-merges the pull request itself on a later run. The "Protect main" ruleset's
+required approval is bypassed the same way you merge your own pull requests, since Renovate uses your token.
+A pull request that fails CI stays open. Nothing is released: tags are still yours to cut. Settings are in
+`renovate.json5`.
+
+One-time setup: the workflow needs the repository secret `RENOVATE_TOKEN`, a fine-grained personal access
+token (github.com/settings/personal-access-tokens) with access to this repository and **Contents**,
+**Pull requests**, **Issues**, **Commit statuses** and **Workflows** set to *Read and write*, plus **Dependabot alerts** set to *Read-only* so Renovate
+opens security fixes without waiting the week. One token
+can serve every repository that runs Renovate (homelab, gmail-cleanup and the others): give it access to
+this one, then `gh secret set RENOVATE_TOKEN --repo DasAmpharos/tools4ynab` and run the workflow once from the
+Actions tab. The token expires (at most a year): when the workflow starts failing, make a new one and set it
+again.
+
 ## Releasing
 
 The version comes from the git tag; there is no version number to edit. Once the changes
